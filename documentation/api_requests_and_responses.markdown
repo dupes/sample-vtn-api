@@ -1,10 +1,17 @@
-![](nebland_oadr_services_logo.png)
+![](nebland_oadr_logo.svg)
+---
+**Benjamin DuPont**  
+ben@nebland.com  
+[https://oadrservices.com](https://oadrservices.com)
+
+*API Date:* **2016-02-11**
+
 # OADR VTN API Requests & Responses
-**2015-09-17**
+
 
 ## General Response Body Structure
 
-```
+```json
 # Success
 {
   "response": {
@@ -18,7 +25,7 @@
 }
 ```
 
-```
+```json
 # Failure
 {
   "response": {
@@ -32,15 +39,14 @@
 }
 ```
 ***
-***
 
 ## Available Requests
 
-### Create Event 
+### Create Event
 Method: `POST`
 URL: `/api/manage_event/create`
 Request Body (JSON):
-```
+```json
 {
   "dtstart_str": "2015-09-17 12:30:00",
   "market_context": "TestMarketContext",
@@ -49,13 +55,22 @@ Request Body (JSON):
   "response_required_type": "always",
   "signal_name": "simple",
   "signal_type": "delta",
-  "group": "TestGroup",
-  "payload": "1.0"
+  "payload": "1.0",
+  "targets": [
+    {
+      "type": "group",
+      "identifier": "TestGroup"
+    },
+    {
+      "type": "ven",
+      "identifier": "9b7b7e91ccf7244455c3"
+    }
+  ]  
 }
 ```
 
 Response Body Result Object (JSON):
-```
+```json
 {
   "event_id": "4b2c013ff071a2504e40"
 }
@@ -66,14 +81,14 @@ Response Body Result Object (JSON):
 Method: `POST`
 URL: `/api/manage_event/publish`
 Request Body (JSON):
-```
+```json
 {
   "event_id": "4b2c013ff071a2504e40"
 }
 ```
 
 Response Body Result Object (JSON):
-```
+```json
 {
   "published": true
 }
@@ -85,7 +100,7 @@ Response Body Result Object (JSON):
 Method: `POST`
 URL: `/api/manage_event/create_schedule`
 Request Body (JSON):
-```
+```json
 {
   "start_date": "2015-10-01",
   "end_date": "2015-10-31",
@@ -113,7 +128,7 @@ Request Body (JSON):
 ```
 
 Response Body Result Object (JSON):
-```
+```json
 {
   "event_id": "627268ec736c8ebe302b"
 }
@@ -125,14 +140,14 @@ Response Body Result Object (JSON):
 Method: `POST`
 URL: `/api/manage_event/info`
 Request Body (JSON):
-```
+```json
 {
   "event_id": "4b2c013ff071a2504e40"
 }
 ```
 
 Response Body Result Object (JSON):
-```
+```json
 {
   "event": {
     "event_id": "4b2c013ff071a2504e40",
@@ -163,14 +178,14 @@ Response Body Result Object (JSON):
 Method: `POST`
 URL: `/api/manage_ven/ven_id`
 Request Body (JSON):
-```
+```json
 {
   "ven": "TestVEN"
 }
 ```
 
 Response Body Result Object (JSON):
-```
+```json
 {
   "ven_id": "9b7b7e91ccf7244455c3"
 }
@@ -182,14 +197,14 @@ Response Body Result Object (JSON):
 Method: `POST`
 URL: `/api/manage_ven/status`
 Request Body (JSON):
-```
+```json
 {
   "ven_id": "9b7b7e91ccf7244455c3"
 }
 ```
 
 Response Body Result Object (JSON):
-```
+```json
 {
   "status": "offline"
 }
@@ -201,14 +216,14 @@ Response Body Result Object (JSON):
 Method: `POST`
 URL: `/api/manage_ven/last_comm_time`
 Request Body (JSON):
-```
+```json
 {
   "ven_id": "9b7b7e91ccf7244455c3"
 }
 ```
 
 Response Body Result Object (JSON):
-```
+```json
 {
   "last_comm_time": "2015-09-15T21:11:56Z"
 }
