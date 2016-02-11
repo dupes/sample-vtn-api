@@ -12,6 +12,7 @@ module Api
       event.market_context_id = ::MarketContext.find_by_name(body_hash['market_context']).id
       event.priority = body_hash['priority']
       event.response_required_type_id = ::ResponseRequiredType.find_by_name(body_hash['response_required_type']).id
+      targets = body_hash['targets']
 
       signal_name_id = ::SignalName.find_by_name(body_hash['signal_name']).id
       signal_type_id = ::SignalType.find_by_name(body_hash['signal_type']).id
@@ -20,11 +21,20 @@ module Api
       # Event.default_event sets values for and saves Event, EventSignal, EventSignalInterval instances
       ::Event.default_event(event, signal_name_id, signal_type_id, payload)
 
-      if body_hash['group'].present? # not nil, and not empty
-        group_instance = ::Group.find_by_name(body_hash['group'])
-        event_group = event.event_groups.new
-        event_group.group_id = group_instance.id
-        event_group.save!
+      targets.each do |target|
+        # Since these two types will have different identifiers (name vs. ven_id),
+        # we need to handle the instance lookup differently based on type
+        if target['type'].downcase == 'group'
+          group_instance = ::Group.find_by_name(target['identifier'])
+          event_group = event.event_groups.new
+          event_group.group_id = group_instance.id
+          event_group.save!
+        elsif target['type'].downcase == 'ven'
+          ven_instance = ::Ven.find_by_ven_id(target['identifier'])
+          event_ven = event.event_vens.new
+          event_ven.ven_id = ven_instance.id
+          event_ven.save!
+        end
       end
 
       event.publish
