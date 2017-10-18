@@ -2,41 +2,85 @@ module Api
 
   class ManageEvent
 
-    def self.create(request_body)
-      body_hash = ActiveSupport::JSON.decode(request_body.to_s) # Argument should be JSON as a string
+    SCHEMA = {
+        create: { validate: false },
+        info: { validate: false }
+    }
+    
+    #####################################################################
 
-      event = ::Event.new
+    def self.add_default_signal(event, signal_name_id, signal_type_id)
+      signal = event.event_signals.new
 
-      event.dtstart_str = body_hash['dtstart_str']
-      event.duration = body_hash['duration']
-      event.market_context_id = ::MarketContext.find_by_name(body_hash['market_context']).id
-      event.priority = body_hash['priority']
-      event.response_required_type_id = ::ResponseRequiredType.find_by_name(body_hash['response_required_type']).id
-      targets = body_hash['targets']
+      signal.signal_name_id = signal_name_id
+      signal.signal_type_id = signal_type_id 
 
-      signal_name_id = ::SignalName.find_by_name(body_hash['signal_name']).id
-      signal_type_id = ::SignalType.find_by_name(body_hash['signal_type']).id
-      payload = body_hash['payload']
-      
-      # Event.default_event sets values for and saves Event, EventSignal, EventSignalInterval instances
-      ::Event.default_event(event, signal_name_id, signal_type_id, payload)
+      signal.default
 
-      targets.each do |target|
-        # Since these two types will have different identifiers (name vs. ven_id),
-        # we need to handle the instance lookup differently based on type
-        if target['type'].downcase == 'group'
-          group_instance = ::Group.find_by_name(target['identifier'])
-          event_group = event.event_groups.new
-          event_group.group_id = group_instance.id
-          event_group.save!
-        elsif target['type'].downcase == 'ven'
-          ven_instance = ::Ven.find_by_ven_id(target['identifier'])
-          event_ven = event.event_vens.new
-          event_ven.ven_id = ven_instance.id
-          event_ven.save!
-        end
+      signal.save!
+    end
+    
+    #####################################################################
+
+    def self.add_or_update_signal_interval(event, signal_index, uid, duration, payload)
+
+      signal = event.event_signals[signal_index]
+
+      event_signal_interval = signal.event_signal_intervals.find_by_uid(uid)
+
+      if event_signal_interval.nil?
+        event_signal_interval = signal.event_signal_intervals.new
       end
 
+      event_signal_interval.uid = uid
+      event_signal_interval.duration = duration
+      event_signal_interval.payload = payload
+      event_signal_interval.save!
+    end
+    
+    ########################################################
+    
+    def self.create(request_body)
+      event = ::Event.new
+
+      event.dtstart_str = request_body['dtstart_str']
+      event.duration = request_body['duration']
+      event.market_context_id = ::MarketContext.find_by_name!(request_body['market_context']).id
+      event.priority = request_body['priority']
+      event.response_required_type_id = ::ResponseRequiredType.find_by_name!(request_body['response_required_type']).id
+
+      add_default_signal(
+        event, 
+        ::SignalName.find_by_name!(request_body['signal_name']).id, 
+        ::SignalType.find_by_name!(request_body['signal_type']).id)
+        
+      add_or_update_signal_interval(
+        event, 
+        0, 
+        0, 
+        request_body['duration'], 
+        request_body['payload'])
+
+      # some default values
+      event.event_id = SecureRandom.hex(10)
+      event.tolerance = 0
+      event.ei_notification = 0
+      event.ei_rampup = 0
+      event.ei_recovery = 0
+      
+      event.save!
+
+      targets = request_body['targets']
+
+      targets.each do |target|
+        if target['type'].downcase == 'group'
+          event.targets << ::Target.find_by_name!(target['identifier'])
+        elsif target['type'].downcase == 'ven'
+          ven_instance = ::Ven.find_by_ven_id(target['identifier'])
+          event.targets << ::Target.find_by_name!("VEN:#{ven_instance.id.to_s}")
+        end
+      end
+      
       event.publish
 
       result_hash = { "event_id" => event.event_id }
@@ -44,60 +88,8 @@ module Api
       return result_hash
     end
     
-    # # # # # # # # # # # # # # # # # # # # # # # #
-
-    def self.create_schedule(request_body)
-      body_hash = ActiveSupport::JSON.decode(request_body.to_s) # Argument should be JSON as a string
-
-      start_date = body_hash['start_date']
-      end_date = body_hash['end_date']
-      start_time_str = body_hash['start_time_str']
-      signal_name_id = ::SignalName.find_by_name(body_hash['signal_name']).id
-      signal_type_id = ::SignalType.find_by_name(body_hash['signal_type']).id
-      payload = body_hash['payload']
-      targets = body_hash['targets']
-      event_attrs = body_hash['event']
-
-      schedule = ::Schedule.new
-
-      schedule.start_date = start_date
-      schedule.end_date = end_date
-      schedule.start_time_str = start_time_str
-
-      event = ::Event.new
-
-      event.dtstart_str = "#{ start_date } #{ start_time_str }"
-      event.duration = event_attrs['duration']
-      event.market_context_id = ::MarketContext.find_by_name(event_attrs['market_context']).id
-      event.priority = event_attrs['priority']
-      event.response_required_type_id = ::ResponseRequiredType.find_by_name(event_attrs['response_required_type']).id
-      event.template = true # Since we're using this as a template for a Schedule
-      
-      ::Schedule.default_schedule(schedule, event, signal_name_id, signal_type_id, payload)
-
-      targets.each do |target|
-        # Since these two types will have different identifiers (name vs. ven_id),
-        # we need to handle the instance lookup differently based on type
-        if target['type'].downcase == 'group'
-          group_instance = ::Group.find_by_name(target['identifier'])
-          event_group = event.event_groups.new
-          event_group.group_id = group_instance.id
-          event_group.save!
-        elsif target['type'].downcase == 'ven'
-          ven_instance = ::Ven.find_by_ven_id(target['identifier'])
-          event_ven = event.event_vens.new
-          event_ven.ven_id = ven_instance.id
-          event_ven.save!
-        end
-      end
-
-      result_hash = { "event_id" => event.event_id }
-
-      return result_hash
-    end
-
-    # # # # # # # # # # # # # # # # # # # # # # # #
-
+    ########################################################
+    
     def self.info(request_body)
       body_hash = ActiveSupport::JSON.decode(request_body.to_s) # Argument should be JSON as a string
 
