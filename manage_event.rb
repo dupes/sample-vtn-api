@@ -91,9 +91,7 @@ module Api
     ########################################################
     
     def self.info(request_body)
-      body_hash = ActiveSupport::JSON.decode(request_body.to_s) # Argument should be JSON as a string
-
-      event = ::Event.find_by_event_id(body_hash['event_id'])
+      event = ::Event.find_by_event_id(request_body['event_id'])
 
       result_hash = {
         "event" => event.attributes.symbolize_keys.except!(:id, :event_status_id, :market_context_id, :response_required_type_id,
