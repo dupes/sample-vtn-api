@@ -77,65 +77,6 @@ Response Body Result Object (JSON):
 ```
 ***
 
-### Publish Event
-Method: `POST`
-URL: `/api/manage_event/publish`
-Request Body (JSON):
-```json
-{
-  "event_id": "4b2c013ff071a2504e40"
-}
-```
-
-Response Body Result Object (JSON):
-```json
-{
-  "published": true
-}
-```
-
-***
-
-### Create Schedule
-Method: `POST`
-URL: `/api/manage_event/create_schedule`
-Request Body (JSON):
-```json
-{
-  "start_date": "2015-10-01",
-  "end_date": "2015-10-31",
-  "start_time_str": "14:30",
-  "signal_name": "simple",
-  "signal_type": "delta",
-  "payload": "1.6",
-  "targets": [
-    {
-      "type": "group",
-      "identifier": "TestGroup"
-    },
-    {
-      "type": "ven",
-      "identifier": "9b7b7e91ccf7244455c3"
-    }
-  ],
-  "event": {
-    "duration": 45,
-    "market_context": "TestMarketContext",
-    "priority": 1,
-    "response_required_type": "always"
-  }
-}
-```
-
-Response Body Result Object (JSON):
-```json
-{
-  "event_id": "627268ec736c8ebe302b"
-}
-```
-
-***
-
 ### Get Event Info
 Method: `POST`
 URL: `/api/manage_event/info`
